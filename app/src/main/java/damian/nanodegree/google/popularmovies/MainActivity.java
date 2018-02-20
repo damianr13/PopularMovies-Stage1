@@ -188,9 +188,6 @@ public class MainActivity extends AppCompatActivity
         loadStarted();
         Loader existingLoader;
         switch (item.getItemId()) {
-            case R.id.action_refresh:
-                getSupportLoaderManager().restartLoader(ID_MOVIES_LOADER, null, this);
-                break;
             case R.id.action_sort_popularity:
                 existingLoader =
                         getSupportLoaderManager().getLoader(ID_MOVIES_LOADER_POPULARITY);
