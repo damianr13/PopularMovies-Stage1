@@ -5,6 +5,9 @@
     <string name="title">Title:</string>
     <string name="rating">Rating:</string>
     <string name="plot">Plot:</string>
+    <string name="connection_error">
+        Could not connect to the movie service. Please turn on wifi or data connection
+    </string>
 
     <string name="action_refresh">Refresh</string>
     <string name="action_order_rating">Order by rating</string>

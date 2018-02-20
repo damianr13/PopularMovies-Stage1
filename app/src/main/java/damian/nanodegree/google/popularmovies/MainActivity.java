@@ -1,84 +1,92 @@
 package damian.nanodegree.google.popularmovies;
 
+import android.support.v4.content.AsyncTaskLoader;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
-import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+
+import org.json.JSONException;
+
+import java.io.IOException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import damian.nanodegree.google.popularmovies.data.Movie;
-import damian.nanodegree.google.popularmovies.data.MovieDBContract;
-import damian.nanodegree.google.popularmovies.sync.MoviesSyncUtils;
+import damian.nanodegree.google.popularmovies.utils.JSONUtils;
+import damian.nanodegree.google.popularmovies.utils.NetworkUtils;
 
 public class MainActivity extends AppCompatActivity
-        implements MovieAdapter.GridItemClickListener, LoaderManager.LoaderCallbacks<Cursor>{
+        implements MovieAdapter.GridItemClickListener, LoaderManager.LoaderCallbacks{
 
     private static final int ID_MOVIES_LOADER = 13;
     private static final int ID_MOVIES_LOADER_POPULARITY = 14;
     private static final int ID_MOVIES_LOADER_RATING = 15;
 
+    private static final String SAVED_STATE_LOADER_KEY = "loader_id";
+
     private MovieAdapter mMoviesAdapter;
+
+    private TextView mErrorTextView;
+    private ProgressBar mLoadingProgressBar;
+    private RecyclerView mMoviesRecyclerView;
+
+    private int mCurrentLoaderId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        RecyclerView rv = (RecyclerView) findViewById(R.id.rv_movies);
-        rv.setLayoutManager(new GridLayoutManager(this, getNumberOfColumns(this)));
+        mMoviesRecyclerView = (RecyclerView) findViewById(R.id.rv_movies);
+        mMoviesRecyclerView.setLayoutManager(new GridLayoutManager(this, getNumberOfColumns(this)));
 
         mMoviesAdapter = new MovieAdapter(this);
-        rv.setAdapter(mMoviesAdapter);
+        mMoviesRecyclerView.setAdapter(mMoviesAdapter);
 
-        getSupportLoaderManager().initLoader(ID_MOVIES_LOADER, null, this);
-        MoviesSyncUtils.initialize(this);
+        mErrorTextView = (TextView) findViewById(R.id.tv_error);
+        mLoadingProgressBar = (ProgressBar) findViewById(R.id.pb_loading);
+        loadStarted();
+
+        // default value
+        mCurrentLoaderId = ID_MOVIES_LOADER_POPULARITY;
+
+        if (savedInstanceState != null &&
+                savedInstanceState.getInt(SAVED_STATE_LOADER_KEY, -1) != -1) {
+            mCurrentLoaderId = savedInstanceState.getInt(SAVED_STATE_LOADER_KEY);
+        }
+        getSupportLoaderManager().initLoader(mCurrentLoaderId, null, this);
     }
 
     @Override
     public void clickItem(Movie clickedMovie) {
-        // TODO: logic to open the new activity with movie details
         Intent goToDetailsActivity = new Intent(this, DetailActivity.class);
         goToDetailsActivity.putExtra(DetailActivity.EXTRA_MOVIE_KEY, clickedMovie);
         startActivity(goToDetailsActivity);
     }
 
     @Override
-    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        /* URI for all rows of weather data in our weather table */
-        Uri moviesUri = MovieDBContract.MovieEntry.CONTENT_URI;
-
+    public Loader onCreateLoader(int id, Bundle args) {
+        mCurrentLoaderId = id;
         switch (id) {
-            case ID_MOVIES_LOADER:
-                return new CursorLoader(this,
-                        moviesUri,
-                        null,
-                        null,
-                        null,
-                        null);
             case ID_MOVIES_LOADER_POPULARITY:
-                return new CursorLoader(this,
-                        moviesUri,
-                        null,
-                        null,
-                        null,
-                        MovieDBContract.MovieEntry.COLUMN_POPULARITY + " DESC");
+                return new MoviesLoader(this, NetworkUtils.API_MOST_POPULAR);
             case ID_MOVIES_LOADER_RATING:
-                return new CursorLoader(this,
-                        moviesUri,
-                        null,
-                        null,
-                        null,
-                        MovieDBContract.MovieEntry.COLUMN_RATING + " DESC");
+                return new MoviesLoader(this, NetworkUtils.API_TOP_RATED);
             default:
                 throw new UnsupportedOperationException("Loader not implemented:" + id);
 
@@ -86,13 +94,72 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        mMoviesAdapter.swapCursor(data);
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        outState.putInt(SAVED_STATE_LOADER_KEY, mCurrentLoaderId);
     }
 
     @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-        mMoviesAdapter.swapCursor(null);
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    public void onLoadFinished(Loader loader, Object data) {
+        if (data == null) {
+            loadFailed();
+            return ;
+        }
+
+        if (data instanceof Cursor) {
+            loadSuccessful(buildMoviesListFromCursor((Cursor) data));
+            return ;
+        }
+        try {
+            loadSuccessful((List<Movie>) data);
+        } catch (ClassCastException ex) {
+            Log.e("MainActivity", null, ex);
+            loadFailed();
+        }
+    }
+
+    private void loadStarted() {
+        mMoviesRecyclerView.setVisibility(View.INVISIBLE);
+        mLoadingProgressBar.setVisibility(View.VISIBLE);
+        mErrorTextView.setVisibility(View.INVISIBLE);
+    }
+
+    private void loadSuccessful(List<Movie> newMoviesList) {
+        mMoviesAdapter.swapSource(newMoviesList);
+        mLoadingProgressBar.setVisibility(View.INVISIBLE);
+        mErrorTextView.setVisibility(View.INVISIBLE);
+        mMoviesRecyclerView.setVisibility(View.VISIBLE);
+    }
+
+    private void loadFailed() {
+        mLoadingProgressBar.setVisibility(View.INVISIBLE);
+        mErrorTextView.setVisibility(View.VISIBLE);
+        mMoviesRecyclerView.setVisibility(View.INVISIBLE);
+    }
+
+    private List<Movie> buildMoviesListFromCursor(Cursor cursor) {
+        ArrayList<Movie> newMoviesList = new ArrayList<>();
+        while (cursor.moveToNext()) {
+            newMoviesList.add(Movie.buildFromCursor(cursor));
+        }
+
+        return newMoviesList;
+    }
+
+    @Override
+    public void onLoaderReset(Loader loader) {
+        mMoviesAdapter.swapSource(null);
     }
 
     /**
@@ -118,6 +185,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        loadStarted();
         Loader existingLoader;
         switch (item.getItemId()) {
             case R.id.action_refresh:
@@ -146,5 +214,57 @@ public class MainActivity extends AppCompatActivity
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private static class MoviesLoader extends AsyncTaskLoader<List<Movie>> {
+
+        private List<Movie> mResult;
+        private String mSortCriteria;
+        /**
+         * Stores away the application context associated with context.
+         * Since Loaders can be used across multiple activities it's dangerous to
+         * store the context directly; always use {@link #getContext()} to retrieve
+         * the Loader's Context, don't use the constructor argument directly.
+         * The Context returned by {@link #getContext} is safe to use across
+         * Activity instances.
+         *
+         * @param context used to retrieve the application context.
+         */
+        public MoviesLoader(Context context, String sortCriteria) {
+            super(context);
+            mResult = null;
+            mSortCriteria = sortCriteria;
+        }
+
+        @Override
+        protected void onStartLoading() {
+            if (mResult != null) {
+                deliverResult(mResult);
+                return ;
+            }
+            forceLoad();
+        }
+
+        @Override
+        public List<Movie> loadInBackground() {
+            try {
+                URL topRatedURL = NetworkUtils.getURL(mSortCriteria);
+                String sortedResult = NetworkUtils.getResponse(topRatedURL);
+
+                return JSONUtils.readMoviesFromJSON(sortedResult);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+
+        @Override
+        public void deliverResult(List<Movie> data) {
+            mResult = data;
+            super.deliverResult(data);
+        }
     }
 }

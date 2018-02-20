@@ -1,2 +1,7 @@
 
 app/src/main/java/damian/nanodegree/google/popularmovies/utils/ConfidenialDataConstants\.java
+
+\.idea/
+\.gradle/
+build/
+
