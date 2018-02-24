@@ -9,6 +9,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Scanner;
 
+import damian.nanodegree.google.popularmovies.BuildConfig;
 import damian.nanodegree.google.popularmovies.data.Movie;
 
 /**
@@ -34,7 +35,7 @@ public class NetworkUtils {
                 .appendPath(API_VERSION)
                 .appendPath(API_MOVIE_PATH)
                 .appendPath(category)
-                .appendQueryParameter(API_KEY_QUERY, ConfidenialDataConstants.MOVIE_API_KEY)
+                .appendQueryParameter(API_KEY_QUERY, BuildConfig.MOVIEDB_API_KEY)
                 .build();
 
         try {

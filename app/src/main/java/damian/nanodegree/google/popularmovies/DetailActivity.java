@@ -2,10 +2,13 @@ package damian.nanodegree.google.popularmovies;
 
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import com.squareup.picasso.Picasso;
+
+import org.parceler.Parcels;
 
 import damian.nanodegree.google.popularmovies.data.Movie;
 import damian.nanodegree.google.popularmovies.databinding.ActivityDetailBinding;
@@ -30,7 +33,8 @@ public class DetailActivity extends AppCompatActivity {
     }
 
     private void fillUserInterface(ActivityDetailBinding dataBinding, Intent intent) {
-        Movie extraMovieInfo = (Movie) intent.getSerializableExtra(EXTRA_MOVIE_KEY);
+        Parcelable movieParcel = intent.getParcelableExtra(EXTRA_MOVIE_KEY);
+        Movie extraMovieInfo = Parcels.unwrap(movieParcel);
 
         dataBinding.tvPlot.setText(extraMovieInfo.getPlot());
         dataBinding.tvTitle.setText(extraMovieInfo.getTitle());

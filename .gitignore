@@ -5,3 +5,5 @@ app/src/main/java/damian/nanodegree/google/popularmovies/utils/ConfidenialDataCo
 \.gradle/
 build/
 
+
+gradle\.properties

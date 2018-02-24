@@ -4,13 +4,14 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.support.annotation.NonNull;
 
-import java.io.Serializable;
+import org.parceler.Parcel;
 
 /**
  * Created by robert_damian on 17.02.2018.
  */
 
-public class Movie implements Serializable{
+@Parcel
+public class Movie {
     /**
      * URL of the movie poster
      */

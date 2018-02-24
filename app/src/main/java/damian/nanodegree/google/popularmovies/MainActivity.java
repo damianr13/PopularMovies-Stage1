@@ -1,5 +1,7 @@
 package damian.nanodegree.google.popularmovies;
 
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.support.v4.content.AsyncTaskLoader;
 import android.content.Context;
 import android.content.Intent;
@@ -20,6 +22,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import org.json.JSONException;
+import org.parceler.Parcels;
 
 import java.io.IOException;
 import java.net.URL;
@@ -69,13 +72,19 @@ public class MainActivity extends AppCompatActivity
                 savedInstanceState.getInt(SAVED_STATE_LOADER_KEY, -1) != -1) {
             mCurrentLoaderId = savedInstanceState.getInt(SAVED_STATE_LOADER_KEY);
         }
-        getSupportLoaderManager().initLoader(mCurrentLoaderId, null, this);
+
+        if (isConnected()) {
+            getSupportLoaderManager().initLoader(mCurrentLoaderId, null, this);
+        }
+        else {
+            loadFailed();
+        }
     }
 
     @Override
     public void clickItem(Movie clickedMovie) {
         Intent goToDetailsActivity = new Intent(this, DetailActivity.class);
-        goToDetailsActivity.putExtra(DetailActivity.EXTRA_MOVIE_KEY, clickedMovie);
+        goToDetailsActivity.putExtra(DetailActivity.EXTRA_MOVIE_KEY, Parcels.wrap(clickedMovie));
         startActivity(goToDetailsActivity);
     }
 
@@ -211,6 +220,21 @@ public class MainActivity extends AppCompatActivity
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private boolean isConnected() {
+        ConnectivityManager cm =
+                (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        if (cm == null) {
+            return false;
+        }
+
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        return activeNetwork != null &&
+                activeNetwork.isConnectedOrConnecting();
+
+
     }
 
     private static class MoviesLoader extends AsyncTaskLoader<List<Movie>> {
