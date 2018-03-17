@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginLeft="5dp"
+    android:layout_marginStart="5dp">
+
+    <ImageView
+        android:id="@+id/iv_video_thumbnail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        tools:src="@mipmap/movie"/>
+
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="@id/iv_video_thumbnail"
+        app:layout_constraintEnd_toEndOf="@id/iv_video_thumbnail"
+        app:layout_constraintTop_toTopOf="@id/iv_video_thumbnail"
+        app:layout_constraintBottom_toBottomOf="@id/iv_video_thumbnail"
+        android:src="@mipmap/play"
+        />
+
+</android.support.constraint.ConstraintLayout>

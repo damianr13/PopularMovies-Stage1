@@ -30,11 +30,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import damian.nanodegree.google.popularmovies.data.Movie;
+import damian.nanodegree.google.popularmovies.helpers.LoaderHelper;
 import damian.nanodegree.google.popularmovies.utils.JSONUtils;
 import damian.nanodegree.google.popularmovies.utils.NetworkUtils;
 
 public class MainActivity extends AppCompatActivity
-        implements MovieAdapter.GridItemClickListener, LoaderManager.LoaderCallbacks{
+        implements MovieAdapter.GridItemClickListener, LoaderManager.LoaderCallbacks,
+        LoaderHelper.ResultsDisplayer{
 
     private static final int ID_MOVIES_LOADER = 13;
     private static final int ID_MOVIES_LOADER_POPULARITY = 14;
@@ -44,9 +46,8 @@ public class MainActivity extends AppCompatActivity
 
     private MovieAdapter mMoviesAdapter;
 
-    private TextView mErrorTextView;
-    private ProgressBar mLoadingProgressBar;
     private RecyclerView mMoviesRecyclerView;
+    private LoaderHelper mMoviesLoaderHelper;
 
     private int mCurrentLoaderId;
 
@@ -61,9 +62,14 @@ public class MainActivity extends AppCompatActivity
         mMoviesAdapter = new MovieAdapter(this);
         mMoviesRecyclerView.setAdapter(mMoviesAdapter);
 
-        mErrorTextView = (TextView) findViewById(R.id.tv_error);
-        mLoadingProgressBar = (ProgressBar) findViewById(R.id.pb_loading);
-        loadStarted();
+        mMoviesLoaderHelper = new LoaderHelper.LoaderHelperBuilder()
+                .setDisplayedResultsView(mMoviesRecyclerView)
+                .setErrorView(findViewById(R.id.tv_error))
+                .setLoadingView(findViewById(R.id.pb_loading))
+                .setHelperId(ID_MOVIES_LOADER)
+                .setResultDisplayer(this)
+                .build(this);
+
 
         // default value
         mCurrentLoaderId = ID_MOVIES_LOADER_POPULARITY;
@@ -73,11 +79,12 @@ public class MainActivity extends AppCompatActivity
             mCurrentLoaderId = savedInstanceState.getInt(SAVED_STATE_LOADER_KEY);
         }
 
-        if (isConnected()) {
+        if (NetworkUtils.isConnected(this)) {
+            mMoviesLoaderHelper.loadStarted();
             getSupportLoaderManager().initLoader(mCurrentLoaderId, null, this);
         }
         else {
-            loadFailed();
+            mMoviesLoaderHelper.loadFailed();
         }
     }
 
@@ -120,41 +127,29 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void onLoadFinished(Loader loader, Object data) {
         if (data == null) {
-            loadFailed();
+            mMoviesLoaderHelper.loadFailed();
             return ;
         }
 
         if (data instanceof Cursor) {
-            loadSuccessful(buildMoviesListFromCursor((Cursor) data));
+            mMoviesLoaderHelper.loadSucceeded(buildMoviesListFromCursor((Cursor) data));
             return ;
         }
         try {
-            loadSuccessful((List<Movie>) data);
+            mMoviesLoaderHelper.loadSucceeded(data);
         } catch (ClassCastException ex) {
             Log.e("MainActivity", null, ex);
-            loadFailed();
+            mMoviesLoaderHelper.loadFailed();
         }
     }
 
-    private void loadStarted() {
-        mMoviesRecyclerView.setVisibility(View.INVISIBLE);
-        mLoadingProgressBar.setVisibility(View.VISIBLE);
-        mErrorTextView.setVisibility(View.INVISIBLE);
-    }
-
-    private void loadSuccessful(List<Movie> newMoviesList) {
-        mMoviesAdapter.swapSource(newMoviesList);
-        mLoadingProgressBar.setVisibility(View.INVISIBLE);
-        mErrorTextView.setVisibility(View.INVISIBLE);
-        mMoviesRecyclerView.setVisibility(View.VISIBLE);
-    }
-
-    private void loadFailed() {
-        mLoadingProgressBar.setVisibility(View.INVISIBLE);
-        mErrorTextView.setVisibility(View.VISIBLE);
-        mMoviesRecyclerView.setVisibility(View.INVISIBLE);
+    @Override
+    @SuppressWarnings("unchecked")
+    public void displayResults(int helperId, Object result) {
+        mMoviesAdapter.swapSource((List<Movie>) result);
     }
 
     private List<Movie> buildMoviesListFromCursor(Cursor cursor) {
@@ -194,7 +189,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        loadStarted();
+        mMoviesLoaderHelper.loadStarted();
         Loader existingLoader;
         switch (item.getItemId()) {
             case R.id.action_sort_popularity:
@@ -220,21 +215,6 @@ public class MainActivity extends AppCompatActivity
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    private boolean isConnected() {
-        ConnectivityManager cm =
-                (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        if (cm == null) {
-            return false;
-        }
-
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-        return activeNetwork != null &&
-                activeNetwork.isConnectedOrConnecting();
-
-
     }
 
     private static class MoviesLoader extends AsyncTaskLoader<List<Movie>> {

@@ -15,12 +15,14 @@ public class Movie {
     /**
      * URL of the movie poster
      */
+    private int id;
     private String imagePath;
     private String title;
     private String plot;
     private double rating;
     private double popularity;
     private String releaseDate;
+    private boolean isFavorite;
 
     public String getImagePath() {
         return imagePath;
@@ -32,6 +34,14 @@ public class Movie {
         }
 
         this.imagePath = imagePath;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getTitle() {
@@ -72,6 +82,14 @@ public class Movie {
 
     public void setReleaseDate(String releaseDate) {
         this.releaseDate = releaseDate;
+    }
+
+    public boolean isFavorite() {
+        return isFavorite;
+    }
+
+    public void setFavorite(boolean favorite) {
+        isFavorite = favorite;
     }
 
     public ContentValues getContentValues() {

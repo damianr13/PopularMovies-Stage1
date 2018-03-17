@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_marginStart="5dp"
+    android:layout_marginLeft="5dp"
+    android:layout_marginBottom="10dp">
+
+    <TextView
+        android:id="@+id/tv_reviewer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorPrimaryDark"
+        android:textColor="@android:color/white"
+        tools:text="User"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <TextView
+        android:id="@+id/tv_review_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingLeft="5dp"
+        android:paddingStart="5dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="5dp"
+        android:background="@drawable/border"
+        tools:text="Very nice movie"
+        app:layout_constraintStart_toStartOf="@id/tv_reviewer"
+        app:layout_constraintTop_toBottomOf="@id/tv_reviewer"/>
+
+</android.support.constraint.ConstraintLayout>

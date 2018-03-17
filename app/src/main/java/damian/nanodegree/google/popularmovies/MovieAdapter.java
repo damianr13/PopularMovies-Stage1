@@ -88,8 +88,8 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
          */
         void bind(Movie movie) {
             mAssociatedMovie = movie;
-            Picasso.with(mContext).load(NetworkUtils.getImageURL(movie)).into(mCoverImageView);
-            Log.i("MovieAdapter", NetworkUtils.getImageURL(movie));
+            Picasso.with(mContext).load(NetworkUtils.getImageURLAsString(movie)).into(mCoverImageView);
+            Log.i("MovieAdapter", NetworkUtils.getImageURLAsString(movie));
         }
 
         @Override

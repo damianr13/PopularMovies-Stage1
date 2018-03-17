@@ -9,6 +9,14 @@
         Could not connect to the movie service. Please turn on wifi or data connection
     </string>
 
+    <string name="connection_error_trailers">
+        Could not fetch the trailers from the server. Please turn on wifi or data connection
+    </string>
+
+    <string name="connection_error_reviews">
+        Could not fetch the reviews from the server. Please turn on wifi or data connection
+    </string>
+
     <string name="action_refresh">Refresh</string>
     <string name="action_order_rating">Order by rating</string>
     <string name="action_order_popularity">Order by popularity</string>
