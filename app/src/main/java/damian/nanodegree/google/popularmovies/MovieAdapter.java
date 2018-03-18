@@ -10,6 +10,8 @@ import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import damian.nanodegree.google.popularmovies.data.Movie;
@@ -18,7 +20,6 @@ import damian.nanodegree.google.popularmovies.utils.NetworkUtils;
 /**
  * Created by robert_damian on 17.02.2018.
  */
-
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHolder>{
 
     private List<Movie> mMoviesList;
@@ -30,6 +31,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     public MovieAdapter(GridItemClickListener itemClickListener) {
         mItemClickListener = itemClickListener;
         mViewHoldersCount = 0;
+        mMoviesList = new ArrayList<>();
     }
 
     @Override
@@ -61,6 +63,11 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.MovieViewHol
     public void swapSource(List<Movie> newMoviesList) {
         mMoviesList = newMoviesList;
         mViewHoldersCount = 0;
+        notifyDataSetChanged();
+    }
+
+    public void addToSource(List<Movie> newMovieList) {
+        mMoviesList.addAll(newMovieList);
         notifyDataSetChanged();
     }
 

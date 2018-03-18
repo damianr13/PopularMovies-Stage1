@@ -22,6 +22,8 @@ import damian.nanodegree.google.popularmovies.data.Movie;
 public class NetworkUtils {
 
     private static final String API_KEY_QUERY = "api_key";
+    private static final String API_PAGE_QUERY = "page";
+
     private static final String API_BASE_URL = "http://api.themoviedb.org";
     private static final String API_VERSION = "3";
     private static final String API_MOVIE_PATH = "movie";
@@ -39,11 +41,16 @@ public class NetworkUtils {
 
 
     public static URL getURL(String category) {
+        return getURL(category, 1);
+    }
+
+    public static URL getURL(String category, int pageIndex) {
         Uri moviesUri = Uri.parse(API_BASE_URL).buildUpon()
                 .appendPath(API_VERSION)
                 .appendPath(API_MOVIE_PATH)
                 .appendPath(category)
                 .appendQueryParameter(API_KEY_QUERY, BuildConfig.MOVIEDB_API_KEY)
+                .appendQueryParameter(API_PAGE_QUERY, String.valueOf(pageIndex))
                 .build();
 
         try {
@@ -138,5 +145,4 @@ public class NetworkUtils {
                 activeNetwork.isConnectedOrConnecting();
 
     }
-
 }

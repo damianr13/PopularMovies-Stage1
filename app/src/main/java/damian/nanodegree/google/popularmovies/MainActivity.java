@@ -16,6 +16,8 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.Toast;
 
 import org.json.JSONException;
 import org.parceler.Parcels;
@@ -23,7 +25,9 @@ import org.parceler.Parcels;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.TreeSet;
 
 import damian.nanodegree.google.popularmovies.data.Movie;
 import damian.nanodegree.google.popularmovies.data.MovieDBContract;
@@ -51,13 +55,24 @@ public class MainActivity extends AppCompatActivity
     private MoviesSharedPreferences mMoviesPreferences;
     private int mCurrentLoaderId;
 
+    private int mCurrentPage;
+
+    private static final Collection<Integer> HANDLED_MENU_ITEMS = new TreeSet<Integer>();
+    static {
+        HANDLED_MENU_ITEMS.add(R.id.action_sort_favorites);
+        HANDLED_MENU_ITEMS.add(R.id.action_sort_popularity);
+        HANDLED_MENU_ITEMS.add(R.id.action_sort_rating);
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         mMoviesRecyclerView = (RecyclerView) findViewById(R.id.rv_movies);
-        mMoviesRecyclerView.setLayoutManager(new GridLayoutManager(this, getNumberOfColumns(this)));
+        RecyclerView.LayoutManager rvLayoutManager =
+                new GridLayoutManager(this, getNumberOfColumns(this));
+        mMoviesRecyclerView.setLayoutManager(rvLayoutManager);
 
         mMoviesAdapter = new MovieAdapter(this);
         mMoviesRecyclerView.setAdapter(mMoviesAdapter);
@@ -72,6 +87,8 @@ public class MainActivity extends AppCompatActivity
 
         mMoviesPreferences = new MoviesSharedPreferences(this);
 
+        mCurrentPage = 1;
+
         // check for stored preference
         mCurrentLoaderId = mMoviesPreferences.getPreferedLoaderId(ID_MOVIES_LOADER_POPULARITY);
 
@@ -83,11 +100,37 @@ public class MainActivity extends AppCompatActivity
 
         if (NetworkUtils.isConnected(this)) {
             mMoviesLoaderHelper.loadStarted();
-            getSupportLoaderManager().initLoader(mCurrentLoaderId, null, this);
+            initOrRestartLoader(mCurrentLoaderId);
         }
         else {
             mMoviesLoaderHelper.loadFailed();
         }
+
+        initScrollListener();
+    }
+
+    /**
+     * Inspired by answer on stackOverflow:
+     * Source: <a href="https://stackoverflow.com/questions/10316743/detect-end-of-scrollview">
+     *     StackOverflow</a>
+     */
+    private void initScrollListener() {
+        mMoviesRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+
+                if (!recyclerView.canScrollVertically(1)) {
+                    // favorite movies are loaded all at once
+                    if (mCurrentLoaderId == ID_MOVIES_LOADER_FAVORITES) {
+                        return ;
+                    }
+
+                    getSupportLoaderManager().restartLoader(mCurrentLoaderId, null,
+                            MainActivity.this);
+                }
+            }
+        });
     }
 
     @Override
@@ -103,9 +146,9 @@ public class MainActivity extends AppCompatActivity
         mMoviesPreferences.setPreferedLoaderId(id);
         switch (id) {
             case ID_MOVIES_LOADER_POPULARITY:
-                return new MoviesLoader(this, NetworkUtils.API_MOST_POPULAR);
+                return new MoviesLoader(this, NetworkUtils.API_MOST_POPULAR, mCurrentPage++);
             case ID_MOVIES_LOADER_RATING:
-                return new MoviesLoader(this, NetworkUtils.API_TOP_RATED);
+                return new MoviesLoader(this, NetworkUtils.API_TOP_RATED, mCurrentPage++);
             case ID_MOVIES_LOADER_FAVORITES:
                 return new CursorLoader(this,
                         MovieDBContract.MovieEntry.CONTENT_URI,
@@ -156,7 +199,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     @SuppressWarnings("unchecked")
     public void displayResults(int helperId, Object result) {
-        mMoviesAdapter.swapSource((List<Movie>) result);
+        mMoviesAdapter.addToSource((List<Movie>) result);
     }
 
     private List<Movie> buildMoviesListFromCursor(Cursor cursor) {
@@ -170,7 +213,7 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onLoaderReset(Loader loader) {
-        mMoviesAdapter.swapSource(null);
+        mMoviesAdapter.swapSource(new ArrayList<Movie>());
     }
 
     /**
@@ -198,46 +241,48 @@ public class MainActivity extends AppCompatActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         mMoviesLoaderHelper.loadStarted();
         Loader existingLoader;
-        switch (item.getItemId()) {
-            case R.id.action_sort_popularity:
-                existingLoader =
-                        getSupportLoaderManager().getLoader(ID_MOVIES_LOADER_POPULARITY);
-                if (existingLoader == null) {
-                    getSupportLoaderManager()
-                            .initLoader(ID_MOVIES_LOADER_POPULARITY, null, this);
-                    break;
-                }
-                getSupportLoaderManager()
-                        .restartLoader(ID_MOVIES_LOADER_POPULARITY, null, this);
-                break;
-            case R.id.action_sort_rating:
-                existingLoader = getSupportLoaderManager().getLoader(ID_MOVIES_LOADER_RATING);
-                if (existingLoader == null) {
-                    getSupportLoaderManager()
-                            .initLoader(ID_MOVIES_LOADER_RATING, null, this);
-                    break;
-                }
-                getSupportLoaderManager()
-                        .restartLoader(ID_MOVIES_LOADER_RATING, null, this);
-            case R.id.action_sort_favorites:
-                existingLoader = getSupportLoaderManager().getLoader(ID_MOVIES_LOADER_FAVORITES);
-                if (existingLoader == null) {
-                    getSupportLoaderManager().initLoader(
-                            ID_MOVIES_LOADER_FAVORITES, null, this);
-                    break;
-                }
-                getSupportLoaderManager().restartLoader(
-                        ID_MOVIES_LOADER_FAVORITES, null, this);
+
+        int selectedLoaderId = -1;
+        int menuItemId = item.getItemId();
+
+        if (!HANDLED_MENU_ITEMS.contains(menuItemId)) {
+            return super.onOptionsItemSelected(item);
         }
 
-        return super.onOptionsItemSelected(item);
+        switch (menuItemId) {
+            case R.id.action_sort_popularity:
+                selectedLoaderId = ID_MOVIES_LOADER_POPULARITY;
+                break;
+            case R.id.action_sort_rating:
+                selectedLoaderId = ID_MOVIES_LOADER_RATING;
+                break;
+            case R.id.action_sort_favorites:
+                selectedLoaderId = ID_MOVIES_LOADER_FAVORITES;
+        }
+
+        mCurrentPage = 1;
+        mMoviesAdapter.swapSource(new ArrayList<Movie>());
+
+        initOrRestartLoader(selectedLoaderId);
+        return true;
     }
 
+    private void initOrRestartLoader(int loaderId) {
+        Loader existingLoader = getSupportLoaderManager().getLoader(loaderId);
+        if (existingLoader == null) {
+            getSupportLoaderManager().initLoader(
+                    loaderId, null, this);
+            return ;
+        }
+        getSupportLoaderManager().restartLoader(
+                loaderId, null, this);
+    }
+    
     private static class MoviesLoader extends AsyncTaskLoader<List<Movie>> {
 
         private List<Movie> mResult;
         private String mSortCriteria;
-
+        private int mPageIndex;
         /**
          * Stores away the application context associated with context.
          * Since Loaders can be used across multiple activities it's dangerous to
@@ -249,9 +294,14 @@ public class MainActivity extends AppCompatActivity
          * @param context used to retrieve the application context.
          */
         MoviesLoader(Context context, String sortCriteria) {
+            this (context, sortCriteria, 1);
+        }
+
+        MoviesLoader(Context context, String sortCriteria, int pageIndex) {
             super(context);
             mResult = null;
             mSortCriteria = sortCriteria;
+            mPageIndex = pageIndex;
         }
 
         @Override
@@ -266,7 +316,7 @@ public class MainActivity extends AppCompatActivity
         @Override
         public List<Movie> loadInBackground() {
             try {
-                URL topRatedURL = NetworkUtils.getURL(mSortCriteria);
+                URL topRatedURL = NetworkUtils.getURL(mSortCriteria, mPageIndex);
                 String sortedResult = NetworkUtils.getResponse(topRatedURL);
 
                 List<Movie> loadedMovieList = JSONUtils.readMoviesFromJSON(sortedResult);
