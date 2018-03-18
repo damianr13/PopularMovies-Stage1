@@ -8,8 +8,6 @@ import android.support.annotation.NonNull;
 
 import org.parceler.Parcel;
 
-import java.util.ConcurrentModificationException;
-
 /**
  * Created by robert_damian on 17.02.2018.
  */

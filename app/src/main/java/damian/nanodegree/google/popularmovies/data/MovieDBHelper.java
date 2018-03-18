@@ -3,6 +3,7 @@ package damian.nanodegree.google.popularmovies.data;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+
 import static damian.nanodegree.google.popularmovies.data.MovieDBContract.MovieEntry;
 /**
  * Created by robert_damian on 17.02.2018.

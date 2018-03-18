@@ -4,18 +4,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.net.Uri;
+import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.AsyncTaskLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
-import android.text.Layout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
@@ -26,7 +24,6 @@ import org.parceler.Parcels;
 import java.io.IOException;
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 
 import damian.nanodegree.google.popularmovies.data.Movie;
 import damian.nanodegree.google.popularmovies.data.Review;
@@ -55,6 +52,7 @@ public class DetailActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_detail);
+
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
@@ -135,15 +133,16 @@ public class DetailActivity extends AppCompatActivity
     }
 
     @Override
-    public void onLoadFinished(Loader loader, Object data) {
+    public synchronized void onLoadFinished(Loader loader, Object data) {
         int loaderId = loader.getId();
         switch (loaderId) {
             case TRAILERS_LOADER_ID:
                 onLoadFinished(trailersLoaderHelper, data);
+                break;
             case REVIEWS_LOADER_ID:
                 onLoadFinished(reviewsLoaderHelper, data);
+                break;
         }
-
     }
 
     private void onLoadFinished(LoaderHelper helper, Object data) {

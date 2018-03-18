@@ -4,12 +4,9 @@ import android.content.Context;
 import android.util.Log;
 import android.view.View;
 
-import javax.xml.transform.Result;
-
 /**
  * Created by robert_damian on 17.03.2018.
  */
-
 public class LoaderHelper {
 
     public static final String LOADER_HELPER_TAG = "LoaderHelper";
@@ -46,13 +43,13 @@ public class LoaderHelper {
     }
 
     public void loadStarted() {
-        mDisplayedResultsView.setVisibility(View.GONE);
-        mErrorView.setVisibility(View.GONE);
+        mDisplayedResultsView.setVisibility(View.INVISIBLE);
+        mErrorView.setVisibility(View.INVISIBLE);
         mLoadingView.setVisibility(View.VISIBLE);
     }
 
     public static interface ResultsDisplayer {
-        public void displayResults(int helperId, Object result);
+        void displayResults(int helperId, Object result);
     }
 
     public static class LoaderHelperBuilder {

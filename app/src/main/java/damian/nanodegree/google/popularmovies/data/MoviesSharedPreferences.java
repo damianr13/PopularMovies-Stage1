@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import damian.nanodegree.google.popularmovies.MainActivity;
 import damian.nanodegree.google.popularmovies.R;
 
 /**
