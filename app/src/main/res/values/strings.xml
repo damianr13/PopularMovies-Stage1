@@ -20,4 +20,7 @@
     <string name="action_refresh">Refresh</string>
     <string name="action_order_rating">Order by rating</string>
     <string name="action_order_popularity">Order by popularity</string>
+    <string name="action_order_favorites">Display favorite movies</string>
+
+    <string name="selected_sort_order_key">selected_sort_order</string>
 </resources>

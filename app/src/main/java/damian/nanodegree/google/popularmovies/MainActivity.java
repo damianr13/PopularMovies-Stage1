@@ -1,13 +1,12 @@
 package damian.nanodegree.google.popularmovies;
 
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.support.v4.content.AsyncTaskLoader;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.GridLayoutManager;
@@ -17,9 +16,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.TextView;
 
 import org.json.JSONException;
 import org.parceler.Parcels;
@@ -30,6 +26,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import damian.nanodegree.google.popularmovies.data.Movie;
+import damian.nanodegree.google.popularmovies.data.MovieDBContract;
+import damian.nanodegree.google.popularmovies.data.MoviesSharedPreferences;
 import damian.nanodegree.google.popularmovies.helpers.LoaderHelper;
 import damian.nanodegree.google.popularmovies.utils.JSONUtils;
 import damian.nanodegree.google.popularmovies.utils.NetworkUtils;
@@ -41,6 +39,7 @@ public class MainActivity extends AppCompatActivity
     private static final int ID_MOVIES_LOADER = 13;
     private static final int ID_MOVIES_LOADER_POPULARITY = 14;
     private static final int ID_MOVIES_LOADER_RATING = 15;
+    private static final int ID_MOVIES_LOADER_FAVORITES = 16;
 
     private static final String SAVED_STATE_LOADER_KEY = "loader_id";
 
@@ -49,6 +48,7 @@ public class MainActivity extends AppCompatActivity
     private RecyclerView mMoviesRecyclerView;
     private LoaderHelper mMoviesLoaderHelper;
 
+    private MoviesSharedPreferences mMoviesPreferences;
     private int mCurrentLoaderId;
 
     @Override
@@ -70,10 +70,12 @@ public class MainActivity extends AppCompatActivity
                 .setResultDisplayer(this)
                 .build(this);
 
+        mMoviesPreferences = new MoviesSharedPreferences(this);
 
-        // default value
-        mCurrentLoaderId = ID_MOVIES_LOADER_POPULARITY;
+        // check for stored preference
+        mCurrentLoaderId = mMoviesPreferences.getPreferedLoaderId(ID_MOVIES_LOADER_POPULARITY);
 
+        // check for saved instance state
         if (savedInstanceState != null &&
                 savedInstanceState.getInt(SAVED_STATE_LOADER_KEY, -1) != -1) {
             mCurrentLoaderId = savedInstanceState.getInt(SAVED_STATE_LOADER_KEY);
@@ -98,11 +100,16 @@ public class MainActivity extends AppCompatActivity
     @Override
     public Loader onCreateLoader(int id, Bundle args) {
         mCurrentLoaderId = id;
+        mMoviesPreferences.setPreferedLoaderId(id);
         switch (id) {
             case ID_MOVIES_LOADER_POPULARITY:
                 return new MoviesLoader(this, NetworkUtils.API_MOST_POPULAR);
             case ID_MOVIES_LOADER_RATING:
                 return new MoviesLoader(this, NetworkUtils.API_TOP_RATED);
+            case ID_MOVIES_LOADER_FAVORITES:
+                return new CursorLoader(this,
+                        MovieDBContract.MovieEntry.CONTENT_URI,
+                        null, null, null, null);
             default:
                 throw new UnsupportedOperationException("Loader not implemented:" + id);
 
@@ -212,6 +219,15 @@ public class MainActivity extends AppCompatActivity
                 }
                 getSupportLoaderManager()
                         .restartLoader(ID_MOVIES_LOADER_RATING, null, this);
+            case R.id.action_sort_favorites:
+                existingLoader = getSupportLoaderManager().getLoader(ID_MOVIES_LOADER_FAVORITES);
+                if (existingLoader == null) {
+                    getSupportLoaderManager().initLoader(
+                            ID_MOVIES_LOADER_FAVORITES, null, this);
+                    break;
+                }
+                getSupportLoaderManager().restartLoader(
+                        ID_MOVIES_LOADER_FAVORITES, null, this);
         }
 
         return super.onOptionsItemSelected(item);
@@ -221,6 +237,7 @@ public class MainActivity extends AppCompatActivity
 
         private List<Movie> mResult;
         private String mSortCriteria;
+
         /**
          * Stores away the application context associated with context.
          * Since Loaders can be used across multiple activities it's dangerous to
@@ -231,7 +248,7 @@ public class MainActivity extends AppCompatActivity
          *
          * @param context used to retrieve the application context.
          */
-        public MoviesLoader(Context context, String sortCriteria) {
+        MoviesLoader(Context context, String sortCriteria) {
             super(context);
             mResult = null;
             mSortCriteria = sortCriteria;
@@ -252,7 +269,13 @@ public class MainActivity extends AppCompatActivity
                 URL topRatedURL = NetworkUtils.getURL(mSortCriteria);
                 String sortedResult = NetworkUtils.getResponse(topRatedURL);
 
-                return JSONUtils.readMoviesFromJSON(sortedResult);
+                List<Movie> loadedMovieList = JSONUtils.readMoviesFromJSON(sortedResult);
+
+                for (Movie movie : loadedMovieList) {
+                    movie._setFavorite(movie.isStoredInDatabase(this.getContext()));
+                }
+
+                return loadedMovieList;
             } catch (JSONException e) {
                 e.printStackTrace();
             } catch (IOException e) {

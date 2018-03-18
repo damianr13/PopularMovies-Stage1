@@ -103,6 +103,9 @@ public class DetailActivity extends AppCompatActivity
         dataBinding.tvTitle.setText(mMovie.getTitle());
         dataBinding.tvRating.setText(String.valueOf(mMovie.getRating()));
         dataBinding.tvReleaseDate.setText(mMovie.getReleaseDate());
+        dataBinding.ivStar.setImageResource(mMovie.isFavorite() ?
+                R.mipmap.ic_star_full :
+                R.mipmap.ic_empty_star);
 
         Picasso.with(this).load(NetworkUtils.getImageURLAsString(mMovie)).into(dataBinding.ivCover);
     }
@@ -112,12 +115,11 @@ public class DetailActivity extends AppCompatActivity
 
         if (mMovie.isFavorite()) {
             starImageView.setImageResource(R.mipmap.ic_empty_star);
-            mMovie.setFavorite(false);
         }
         else {
             starImageView.setImageResource(R.mipmap.ic_star_full);
-            mMovie.setFavorite(true);
         }
+        mMovie.setFavorite(this, !mMovie.isFavorite());
     }
 
     @Override

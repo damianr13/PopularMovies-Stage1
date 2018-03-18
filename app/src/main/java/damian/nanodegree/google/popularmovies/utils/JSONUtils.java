@@ -57,6 +57,7 @@ public class JSONUtils {
         result.setPopularity(movieJSON.optDouble(POPULARITY_KEY));
         result.setReleaseDate(movieJSON.optString(RELEASE_DATE_KEY));
 
+
         return result;
     }
 
